@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-void huffman_encoding (char* alphabet, int alphabet_size, int symbol_size, void (*read) (char*), void (*write) (char*), void (*rewind) ()) ;
-void huffman_decoding (void (*read) (char*), void (*write) (char*)) ;
+void huffman_encoding (unsigned char* alphabet, int alphabet_size, int symbol_size, int symbol_eof, void (*read) (unsigned char*), void (*write) (unsigned char*, int), void (*rewind) ()) ;
+void huffman_decoding (void (*read) (unsigned char*), void (*write) (unsigned char*, int)) ;
 
 #endif
