@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 entry* entry_new (	size_t symbol_size,
 			unsigned char* _s,
@@ -36,7 +37,12 @@ int entry_cmp (	const void* e1,
 
 void entry_display (const void* e) 
 {
-	fprintf (stderr, "%c ---> %d\n", ((entry*)e)->s[0], ((entry*)e)->occurence) ;
+	int i ;
+	fprintf (stderr, "%s ---> %d ", ((entry*)e)->s, ((entry*)e)->l) ;
+	for (i=0; i<(((entry*)e)->l)/8+1; ++i) {
+		fprintf (stderr, "%d ", *((entry*)e)->k) ;
+	}
+	fprintf (stderr, "\n") ;
 }
 
 entry* look_up_entry (unsigned char* symbol, code *c) {
@@ -98,20 +104,63 @@ code* forward_analyze (	unsigned char *alphabet,
 	return c; 
 }
 
+/*
+	binary number of binary_size bits.
+	buffer of buffer_size bytes
+	offset can be negative.
+	return the remaining capacity of buffer. if negativ then buffer overflow
+*/
+int write_binary_in_buffer (unsigned char *binary, size_t binary_size, unsigned char *buffer, size_t buffer_size, size_t offset) {
+	int i = 0 ;
+	while (i < ceil(binary_size/8)) {
+		if (offset/8.+i < buffer_size && floor((float)offset/8.)+i >= 0) {
+			buffer[offset/8+i] |= binary[i/8] >> (offset%8) ;
+		}
+		if (offset/8+i+1 < buffer_size && floor((float)offset/8.)+i+1 >= 0) {
+			buffer[offset/8+i+1] |= binary[i/8] << (8-(offset%8)) ;
+		}
+		++i ;
+	}
+	return buffer_size - (offset + binary_size) ;
+}
+
 void encode (	code *c,
 		void (*read) (unsigned char*),
 		void (*write) (unsigned char*, size_t)) 
 {
 	entry *e ;
-	unsigned char* symbol = (unsigned *) malloc (c->symbol_size * sizeof (unsigned char)) ;
+	unsigned char* symbol = (unsigned char*) malloc (c->symbol_size * sizeof (unsigned char)) ;
+//	unsigned int size_encoded = 0 ;
+	size_t buffer_size = 1 ;
 	unsigned int size_encoded = 0 ;
+	unsigned char* buffer = calloc (buffer_size, sizeof (unsigned char) ) ;
+	int pos=0, res, i ;
+
+	pqueue_display (c->table, entry_display) ;
 
 	read (symbol) ;
 	while (memcmp (symbol, c->symbol_eof, c->symbol_size) != 0) {
 		e = look_up_entry (symbol, c) ;
+
+		res = write_binary_in_buffer (e->k, e->l, buffer, buffer_size, pos) ;
+		if (res <= 0) {
+			// buffer is full. We send it and set the buffer to 0.
+			write (buffer, buffer_size) ;
+			for (i=0; i<buffer_size; ++i) {
+				buffer[i] = 0 ;
+			}
+			pos = 0 ;
+		} else pos += e->l ;
+		if ( res < 0) {
+			// the current symbol wasn't written complety in buffer so we write the remaining in the zero-ed buffer with a negativ offset
+			write_binary_in_buffer (e->k, e->l, buffer, buffer_size, res) ;
+			pos = res+e->l ;
+		}
+
 		size_encoded += e->l ;
 		read (symbol) ;
 	}
+
 	fprintf (stderr, "size of compressed data : %d\n", size_encoded) ;
 
 	free (symbol) ;

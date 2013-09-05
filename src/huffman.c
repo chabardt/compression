@@ -136,7 +136,7 @@ void explore_tree (code *c, htree *root) {
 				current = current->right ;
 				// adding one at ith position in temp
 				tmp[i/8] |= 128 >> i%8; 
-				i++;
+				++i;
 			}
 		}
 		// we reached a leaf. We have the code for symbol, just need to copy it in the right place.
