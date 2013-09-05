@@ -2,6 +2,7 @@ export CC	= gcc
 export AR	= ar
 export INC_PATH	= /home/theodore/Workspace/c99/include
 export LIB_PATH	= /home/theodore/Workspace/c99/lib
+export LIB_FLAG	= -lm -lutils
 export CFLAGS	= -I$(INC_PATH) -g -Wall -pedantic -std=c99
 export AFLAGS	= -cvq
 export DEST	= /home/theodore/Workspace/c99/
