@@ -41,6 +41,8 @@ int main (int argc, char *argv[]) {
 			c = huffman_analyze (ascii, 256, 1, ascii+255, test_read, test_rewind) ;
 
 			encode (c, test_read, test_write) ;
+
+			fp_out = fopen ("reconstructed", "wb+");
 			decode (c, test_read, test_write) ;
 
 			code_delete (c) ;

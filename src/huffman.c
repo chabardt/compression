@@ -120,7 +120,6 @@ void explore_tree (code *c, htree *root) {
 	//  should set this to a size related to |sigma|.
 	size_t upper_bound = 15 ;
 	unsigned char *tmp = (unsigned char*) calloc (upper_bound, sizeof (unsigned char)) ;
-	size_t tmp_l ;
 	int i=0 ;
 
 	while (root->left != NULL || root->right != NULL) {
@@ -140,11 +139,8 @@ void explore_tree (code *c, htree *root) {
 			}
 		}
 		// we reached a leaf. We have the code for symbol, just need to copy it in the right place.
-		e = look_up_entry (current->symbol, c) ;
-		e->l = i;
-		tmp_l = ceilf((float)i/8.) ;
-		e->k = malloc (tmp_l*sizeof(unsigned char)) ;
-		memcpy (e->k, tmp, tmp_l) ;
+		e = look_up_entry_symbol (current->symbol, c) ;
+		e->b = binary_new (tmp, i);
 
 		// going back to next unexplored direction.
 		while (current->parent != NULL && current->parent->right == current) {
