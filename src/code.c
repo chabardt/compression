@@ -57,8 +57,10 @@ entry* look_up_entry_binary (binary* b, code *c) {
 	assert (b != NULL) ;
 	int i ;
 	for (i=0; i<c->sigma_size; ++i) {
-		if (memcmp (b->bytes, ((entry*)c->table->data[i])->b->bytes, b->l) == 0) {
-			return ((entry*)c->table->data[i]);
+		if (((entry*)c->table->data[i])->b->l == b->l) {
+			if (binary_cmp (b, ((entry*)c->table->data[i])->b, b->l) == 0) {
+				return ((entry*)c->table->data[i]);
+			}
 		}
 	}
 
@@ -115,12 +117,11 @@ void encode (	code *c,
 		void (*read) (unsigned char*),
 		void (*write) (unsigned char*, size_t)) 
 {
-
 	entry *e ;
 	unsigned char* symbol = (unsigned char*) malloc (c->symbol_size * sizeof (unsigned char)) ;
 
 	size_t buffer_size = 16 ; // 4 bytes
-	binary* buffer = binary_new_with_str ("", buffer_size) ;
+	binary* buffer = binary_new_with_str ("", 0, buffer_size) ;
 	int res, pos = 0 ;
 
 	do {
@@ -139,36 +140,71 @@ void encode (	code *c,
 
 		if ( res < 0) {
 			// the current symbol wasn't written complety in buffer so we write the remaining in the zero-ed buffer with a negativ offset
-			binary_cpy (buffer, e->b, 0-e->b->l-res) ;
+			binary_cpy (buffer, e->b, 0-e->b->l - res) ;
 			pos -= res ;
 		}
 
-		size_encoded += e->b->l ;
 	} while (memcmp (symbol, c->symbol_eof, c->symbol_size) != 0) ;
 
 	// Copying the end of the non-finished buffer.
 	if (res > 0) {	
-		write (buffer->bytes, ceil (((float)pos)/8.)) ;
+		write (buffer->bytes, ((pos-1)/8+1)) ;
 
 	}
 
 	free (symbol) ;
+	binary_delete (buffer) ;
 }
 
 void decode (	code *c,
 		void (*read) (unsigned char*),
 		void (*write) (unsigned char*, size_t)) 
 {
-	entry* e ; 
-	unsigned char* symbol = (unsigned char*) malloc (c->symbol_size * sizeof (unsigned char)) ;
-	size_t buffer_size = 16 ;
-	binary* buffer = binary_new_with_str ("", buffer_size) ;
 
-	
+	pqueue_display (c->table, entry_display) ;
+	entry *e = NULL ; 
+
+	unsigned char *in ; 
+	unsigned char ch = 0 ;
+	in = (unsigned char*) malloc (c->symbol_size * sizeof (unsigned char)) ;
+
+	size_t buf_size = 8 * c->symbol_size * 8 ;
+	binary* buf = binary_new_with_str ("", 0, buf_size) ;
+	binary* b = binary_new_with_str ("", 0, buf_size) ;
+
+	int reading_head=0 ;
+	int i ;
+
 	do {
-		
-	}
+		if (e != NULL) {
+			write (e->s, c->symbol_size) ;
+		}
 
+		i = 0 ;
+		binary_clear (b) ;
+		e = NULL;
+
+		// Filling up the buffer.
+		while (reading_head + c->symbol_size*8 < buf_size) {
+			read (in) ;
+			binary_cpy_data (buf, in, c->symbol_size*8, reading_head) ;
+			reading_head += c->symbol_size*8 ; 
+		}
+
+		// Searching bit per bit for a symbol.
+		while (i < reading_head && e == NULL) {
+			ch = 128*(binary_read_bit (buf, i) == '1') ;
+			binary_cpy_data ( b, &ch, 1, i) ;
+			++i ;
+			e = look_up_entry_binary (b, c) ;
+		}
+
+		// if symbol found, left-shift buffer until entire symbol code deleted
+		binary_lshift (buf, i) ;
+		reading_head = buf->l ;
+
+	} while (memcmp (e->s, c->symbol_eof, c->symbol_size) != 0 ) ;
+	free (in) ;
 }
 
 void code_delete (code *c) 

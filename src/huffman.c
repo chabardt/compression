@@ -140,7 +140,7 @@ void explore_tree (code *c, htree *root) {
 		}
 		// we reached a leaf. We have the code for symbol, just need to copy it in the right place.
 		e = look_up_entry_symbol (current->symbol, c) ;
-		e->b = binary_new (tmp, i);
+		e->b = binary_new (tmp, i, i);
 
 		// going back to next unexplored direction.
 		while (current->parent != NULL && current->parent->right == current) {
