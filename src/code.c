@@ -161,7 +161,6 @@ void decode (	code *c,
 		void (*write) (unsigned char*, size_t)) 
 {
 
-	pqueue_display (c->table, entry_display) ;
 	entry *e = NULL ; 
 
 	unsigned char *in ; 

@@ -36,7 +36,7 @@ int main (int argc, char *argv[]) {
 		if (fp_in == NULL) { 
 			fprintf (stderr, "error opening file %s.\n", argv[i]) ;
 		} else {
-			fp_out = fopen ("huffman_out", "wb+") ;
+			fp_out = fopen ("huffman_encoded", "wb+") ;
 
 			c = huffman_analyze (ascii, 256, 1, ascii+255, test_read, test_rewind) ;
 
@@ -47,7 +47,7 @@ int main (int argc, char *argv[]) {
 
 			test_rewind () ;
 
-			fp_out = fopen ("reconstructed", "wb+");
+			fp_out = fopen ("huffman_decoded", "wb+");
 			decode (c, test_read, test_write) ;
 
 			code_delete (c) ;

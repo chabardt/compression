@@ -9,15 +9,14 @@
 typedef struct htree htree ;
 
 struct htree {
-	unsigned char *symbol ; // NULL if not a leaf.
+	entry *e;
 	unsigned int weight ; // the occurence of symbol or added weight of childs.
 	htree *parent ;
 	htree *left ;
 	htree *right ;
 } ;
 
-htree* htree_new (	size_t symbol_size,
-			unsigned char *symbol,
+htree* htree_new (	entry *e,
 			unsigned int weight,
 			htree *parent, htree *left, htree *right )
 {
@@ -25,11 +24,7 @@ htree* htree_new (	size_t symbol_size,
 	t = (htree*) malloc (sizeof (*t) ) ;
 	assert (t != NULL) ;
 
-	if (symbol != NULL) { 
-		t->symbol = (unsigned char*) malloc (symbol_size) ;
-		memcpy (t->symbol, symbol, symbol_size) ;
-	}
-
+	t->e = e ;
 	t->parent = parent; t->left = left ; t->right = right ;
 	t->weight = weight ;
 
@@ -38,7 +33,6 @@ htree* htree_new (	size_t symbol_size,
 
 void htree_delete (htree *t) {
 	if (t != NULL) {
-		free (t->symbol) ;
 		if (t->left != NULL) htree_delete (t->left) ;
 		if (t->right != NULL) htree_delete (t->right) ;
 
@@ -83,7 +77,7 @@ htree* build_huffman_tree (code *c) {
 
 	// copy because element already heapified in c->table... 
 	for (i=0; i<c->table->size; ++i) {
-		single_node_forest->data[i] = (void*)htree_new (c->symbol_size, ((entry*)c->table->data[i])->s, ((entry*)c->table->data[i])->occurence, NULL, NULL, NULL) ;
+		single_node_forest->data[i] = (void*)htree_new ((entry*)c->table->data[i], ((entry*)c->table->data[i])->occurence, NULL, NULL, NULL) ;
 	}
 	single_node_forest->size = c->table->size ;
 
@@ -101,7 +95,7 @@ htree* build_huffman_tree (code *c) {
 			t2 = pqueue_pop (merged_forest) ;
 
 		}
-		new_tree = htree_new (0, NULL, t1->weight + t2->weight, NULL, t1, t2) ;
+		new_tree = htree_new (NULL, t1->weight + t2->weight, NULL, t1, t2) ;
 		t1->parent = new_tree ;
 		t2->parent = new_tree ;
 		pqueue_insert (merged_forest, (void*) new_tree ) ;
@@ -115,7 +109,6 @@ htree* build_huffman_tree (code *c) {
 }
 
 void explore_tree (code *c, htree *root) {
-	entry *e ;
 	htree *current = root ;
 	//  should set this to a size related to |sigma|.
 	size_t upper_bound = 15 ;
@@ -139,8 +132,7 @@ void explore_tree (code *c, htree *root) {
 			}
 		}
 		// we reached a leaf. We have the code for symbol, just need to copy it in the right place.
-		e = look_up_entry_symbol (current->symbol, c) ;
-		e->b = binary_new (tmp, i, i);
+		current->e->b = binary_new (tmp, i, i);
 
 		// going back to next unexplored direction.
 		while (current->parent != NULL && current->parent->right == current) {
